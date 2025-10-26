@@ -68,19 +68,6 @@ The plugin will prevent you from adding vertices that would exceed the target ar
 - Python 3.6+
 - PyQt5
 
-## Screenshots
-
-### Creating a New Polygon
-![Creating Polygon](screenshots/create_polygon.png)
-*Real-time area feedback while digitizing*
-
-### Editing Vertices
-![Editing Vertices](screenshots/edit_vertices.png)
-*Visual vertex markers for easy editing*
-
-### Plugin Interface
-![Plugin Interface](screenshots/interface.png)
-*Simple and intuitive dockable interface*
 
 ## Configuration
 
