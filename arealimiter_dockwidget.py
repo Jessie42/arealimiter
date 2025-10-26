@@ -425,6 +425,11 @@ class AreaLimiterDockWidget(QDockWidget):
 
         # Detect QGIS layer changes
         iface.layerTreeView().currentLayerChanged.connect(self.on_active_layer_changed)
+        
+        # Connect to project signals for layer updates
+        QgsProject.instance().layersAdded.connect(self.on_layers_changed)
+        QgsProject.instance().layersRemoved.connect(self.on_layers_changed)
+        QgsProject.instance().layerWillBeRemoved.connect(self.on_layer_will_be_removed)
 
     # -------------------------------------------------------------------------
     # Populate combo boxes
@@ -449,6 +454,13 @@ class AreaLimiterDockWidget(QDockWidget):
         for layer in polygon_layers:
             self.ui.comboLayer.addItem(layer.name())
             self.layer_lookup[layer.name()] = layer
+            
+            # Connect to layer name changes
+            try:
+                layer.nameChanged.disconnect(self.on_layer_name_changed)
+            except:
+                pass
+            layer.nameChanged.connect(self.on_layer_name_changed)
 
     def populate_units(self):
         """Fill combo box with area units (m² and hectares)."""
@@ -461,6 +473,42 @@ class AreaLimiterDockWidget(QDockWidget):
     # -------------------------------------------------------------------------
     # Signal handlers
     # -------------------------------------------------------------------------
+    def on_layers_changed(self, layers=None):
+        """Triggered when layers are added or removed from the project."""
+        current_layer_name = self.ui.comboLayer.currentText()
+        self.populate_layers()
+        
+        # Try to restore previous selection if layer still exists
+        idx = self.ui.comboLayer.findText(current_layer_name)
+        if idx >= 0:
+            self.ui.comboLayer.setCurrentIndex(idx)
+        else:
+            # If previous layer no longer exists, select first available
+            if self.ui.comboLayer.count() > 0:
+                self.ui.comboLayer.setCurrentIndex(0)
+
+    def on_layer_will_be_removed(self, layer_id):
+        """Triggered when a layer is about to be removed."""
+        # If the currently selected layer is being removed, clear the selection
+        if self.layer and self.layer.id() == layer_id:
+            self.layer = None
+            self.ui.labelStatus.setText("⚠️ Selected layer was removed.")
+
+    def on_layer_name_changed(self):
+        """Triggered when a layer's name is changed."""
+        # Refresh the combo box to show updated names
+        current_layer_id = self.layer.id() if self.layer else None
+        self.populate_layers()
+        
+        # Restore selection based on layer ID rather than name
+        if current_layer_id:
+            for i in range(self.ui.comboLayer.count()):
+                layer_name = self.ui.comboLayer.itemText(i)
+                layer = self.layer_lookup.get(layer_name)
+                if layer and layer.id() == current_layer_id:
+                    self.ui.comboLayer.setCurrentIndex(i)
+                    break
+
     def on_active_layer_changed(self, layer):
         """Triggered when the active QGIS layer changes."""
         if isinstance(layer, QgsVectorLayer) and \
