@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/area_limit" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>
